@@ -31,6 +31,7 @@ class Simulation():
         self.fdtd.run()
 
     def save(self):
+        """remove the result (by switchtolayout) and save the result"""
         self.fdtd.switchtolayout()
         self.fdtd.cd(self.working_dir)
         self.fdtd.save()

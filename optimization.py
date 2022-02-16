@@ -1,11 +1,15 @@
 import os
 import inspect
 import shutil
+from matplotlib.pyplot import get
+import numpy as np
 
 from Utilities.base_script import BaseScript
 from Utilities.wavelength import Wavelength
 from Utilities.plotter import Plotter
 from Utilities.simulation import Simulation
+from Figures_of_merit.modematch import ModeMatch
+from Lumerical_methods.lumerical_scripts import get_field
 
 class SuperOptimization():
     pass
@@ -45,6 +49,7 @@ class Optimization(SuperOptimization):
         self.plot_hist = bool(plot_hist)
         self.store_all = bool(store_all)
         self.plotter = None # Initialize it when we know the number of parameters
+        self.unfold_symmetry = geometry.unfold_symmetry
         self.hist_fom = []
         self.hist_grad = []
         self.hist_params = []
@@ -87,11 +92,99 @@ class Optimization(SuperOptimization):
         self.geometry.add_geo(self.sim, start_params, only_update = False)
         
     def make_forward_sim(self, params):
-        pass
-    
+        """
+        This function is used to set all the settings before running forward solver
+        ---INPUT---
+        PARAMS: 1-D array. The parameters of polygon (depends on its geometry type).
+        """
+        self.sim.fdtd.switchtolayout()
+        self.geometry.update_geometry(params)
+        self.geometry.add_geo(self.sim, params = None, only_update = True)
+        self.sim.fdtd.setnamed('source', 'enabled', True) # Used to set forward source
+        self.fom.make_forward_sim(self.sim) # Used to set adjoint source
+
     def run_forward_solver(self, params):
-        pass
+        """
+        This function is used to set and run the forward simulation and then compute the figures 
+        of merit.
+        ---INPUT---
+        PARAMS: 1-D array. The parameters of polygon (depends on its geometry type).
+        """
+        print('Running forward simulation')
+        self.make_forward_sim(params)
+        iter = self.optimizer.iter if self.store_all else 0
+        self.sim.run('Forward', iter)
+
+        # Collect the data and calculate the fom
+        get_eps = True
+        get_D = not self.dir_grad
+        nointerpolation = not self.geometry.use_interpolation()
+        self.forward_fields = get_field(self.sim.fdtd, 
+                                        monitor_name = 'opt_fields', # named in base script
+                                         field_result_name = 'forward_fields',
+                                         get_eps = get_eps,
+                                         get_D = get_D,
+                                         get_H = False,
+                                         noninterpolation = nointerpolation,
+                                         unfold_symmetry = self.unfold_symmetry)
+
+        fom = self.fom.get_fom(self.sim)
+        if self.store_all:
+            self.sim.save()
+        self.hist_fom.append(fom)
+        print('FOM = {}'.format(fom))
+        return fom
     
+    def make_adjoint_sim(self, params):
+        """
+        This function is used to set all the settings before running adjoint solver
+        ---INPUT---
+        PARAMS: 1-D array. The parameters of polygon (depends on its geometry type).
+        """
+        self.sim.fdtd.switchtolayout()
+        assert np.allclose(params, self.geometry.get_current_params), 'discrepancy of parameters, run forward simulation (update_params) first'
+        self.geometry.add_geo(self.sim, params = None, only_update = True)
+        self.sim.fdtd.setnamed('source', 'enabled', False)
+        self.fom.make_adjoint_sim(self.sim)
+
+    def run_adjoint_solves(self, params):
+        """
+        This function is used to set and run the adjoint simulation and then extract the adjoint field
+        ---INPUT---
+        PARAMS: 1-D array. The parameters of polygon (depends on its geometry type).
+        """
+        has_forward_field = hasattr(self, 'forward_fields') and hasattr(self.forward_fields, 'E')
+        if not has_forward_field:
+            self.run_forward_solver(params)
+        
+        print('Running adjoint simulation')
+        self.make_adjoint_sim(params)
+        iter = self.optimizer.iter if self.store_all else 0
+        self.sim.run(name = 'adjoint', num = iter)
+
+        get_eps = not self.dir_grad
+        get_D = not self.dir_grad
+        nointerpolation = not self.geometry.use_interpolation()
+
+        self.adjoint_fields = get_field(self.sim.fdtd,
+                                        monitor_name = 'opt_fields',
+                                        field_result_name = 'adjoint_fields',
+                                        get_eps = get_eps,
+                                        get_D = get_D,
+                                        get_H = False,
+                                        noninterpolation = nointerpolation,
+                                        unfold_symmetry = self.geometry.unfold_symmetry)
+        self.adjoint_fields.scaling_factor = self.fom.get_adjoint_field_scaling(self.sim)
+        self.adjoint_fields.scale(3, self.adjoint_fields.scaling_factor)
+
+        if self.store_all:
+            self.sim.save()
+
+    def calculate_gradients(self):
+        """
+        
+        """
+        
     def callable_fom(self, params):
         """
         This function is used to calculate the figures of merit
@@ -101,6 +194,17 @@ class Optimization(SuperOptimization):
         RETURN: scalar, it is the figures of merit
         """
         return self.run_forward_solver(params)
+
+    def callable_jac(self, params):
+        """
+        This function is used to calculate the jacobian (gradient) of the figure of merits
+        ---INPUTS---
+        PARAMS: Array class, it is the parameters needed to be optimized
+        ---OUTPUT---
+        RETURN: Array, the jacobian gradients of the figure of merits
+        """
+        self.run_adjoint_solves(params)
+        return self.calculate_gradients
 
     @staticmethod
     def go_to_new_opts_folder(calling_file_name, base_script):

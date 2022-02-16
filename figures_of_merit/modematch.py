@@ -1,6 +1,6 @@
-from _typeshed import StrPath
 import numpy as np
 import scipy as sp
+import scipy.constants
 
 from Utilities.wavelength import Wavelength
 
@@ -14,7 +14,7 @@ def is_int(x):
 
 class ModeMatch:
     """
-    This class is used to calculate the figures_of_merit of the optimization by overlap integral of the simulation fields recorded by the field monitor and the desired eigenmodes. The integral is completed by the mode expansion monitor, and the results are recorded in the T-forward variable, the detail of which ca be found in the following page:
+    This class is used to calculate the figures_of_merit of the optimization by overlap integral of the simulation fields recorded by the field monitor and the desired eigenmodes. The integral is completed by the mode expansion monitor, and the results are recorded in the T-forward variable, the detail of which can be found in the following page:
             https://kb.lumerical.com/ref_sim_obj_using_mode_expansion_monitors.html
     """
     def __init__(self, monitor_name, mode_num, direction, mul_freq_src = False, target_T_foward = lambda wl: np.ones(wl.size), norm_p = 1):
@@ -31,6 +31,9 @@ class ModeMatch:
         TARGET_T_FORWARD:   Function, with the array of wavelength as input, it will return an 
             array representing the target T-forward values
         NORM_P:  Scalar. The exponent we use to generate the figures of merit
+        ---OTHER VARIABLES---
+        WAVELENGTH: Array, represent the sampling points of wavelength
+        PHASE_PREFACTORS:    1-D Array, 
         """
         if not monitor_name:
             raise UserWarning('empty monitor name')
@@ -73,6 +76,18 @@ class ModeMatch:
         adj_inj_dir = 'Backward' if self.direction == 'Forward' else 'Forward'
         ModeMatch.add_mode_src(sim, self.monitor_name, self.mode_src_name, adj_inj_dir, self.mode_num, self.mul_freq_src)
 
+    def get_fom(self, sim):
+        """
+        This function is used to calculate the fom after the forward simulation
+        """
+        trans_coeff = ModeMatch.get_transmission_coefficient(sim, self.direction, self.monitor_name, self.exp_mon_name)
+        self.wavelength = ModeMatch.get_wavelength(sim)
+        source_power = ModeMatch.get_source_power(sim, self.wavelength)
+        self.T_fwd_vs_wl = np.real(trans_coeff * trans_coeff.conj() / source_power)
+        self.phase_prefactors = trans_coeff / 4.0 / source_power # Problem: meaning
+        fom = ModeMatch.fom_wavelength_integral(self.T_fwd_vs_wl, self.wavelength, self.targe_T_forward, self.norm_p)
+        return fom
+
     def check_monitor_alignment(self, sim, tol = 1e-9):
         """
         This function is used to check the field monitor used to calculate the figures_of_merit, in particular to ensure that monitor is set close enough to the simulation grids
@@ -107,6 +122,23 @@ class ModeMatch:
 
         if min(grids - mon_pos) > tol:
             raise UserWarning('distance between monitor and simulation grids is out of tolerance, it will result in phase error and inaccurate gradients')
+
+    def get_adjoint_field_scaling(self, sim):
+        """
+        Due to the set of fom and thus the form of E_adjoint 
+        (refer to  https://www.osapublishing.org/oe/abstract.cfm?uri=oe-21-18-21693)
+        and the normalization principle of modal fields
+        (refer to https://kb.lumerical.com/ref_sim_obj_using_mode_expansion_monitors.html)
+        there should be scaling term for the adjoint fields, which will be returned by this function
+        ---INPUT---
+        SIM:    Fdtd object, used to get source power Problem: src_pwr the same as forward one?
+        """
+        omega = 2 * np.pi * scipy.constants.speed_of_light / self.wavelength
+        adjoint_source_power = ModeMatch.get_source_power(sim, self.wavelength)
+
+        assert hasattr(self, 'phase_prefactors'), 'Don not have phase_prefactors attribute'
+        scaling_factor = np.conj(self.phase_prefactors) * omega * 1j / np.sqrt(adjoint_source_power)
+        return scaling_factor
 
     @staticmethod
     def add_mode_exp_monitor(sim, monitor_name, exp_mon_name, mode_num):
@@ -193,7 +225,7 @@ class ModeMatch:
 
         # synchronize the properties of mode source
         monitor_type = sim.fdtd.getnamed(monitor_name, 'monitor type')
-        geo_props, normal = ModeMatch.cross_section_monitor_props(monitor_name)
+        geo_props, normal = ModeMatch.cross_section_monitor_props(monitor_type)
 
         sim.fdtd.setnamed(mode_src_name, 'injection axis', normal.lower() + '-axis')
         if sim.fdtd.getnamednumber('varFDTD' == 1):
@@ -211,3 +243,90 @@ class ModeMatch:
             sim.fdtd.setnamed(mode_src_name, 'mode select', mode_num)
             sim.fdtd.select(mode_src_name)
             sim.fdtd.updatesourcemode()
+
+    @staticmethod
+    def get_transmission_coefficient(sim, direction, monitor_name, exp_mon_name):
+        """
+        This function is used to get the normalized (energy of each mode is normalized) complex transmission coefficient from the given monitor
+        ---INPUTS---
+        DIRECTION: String, 'Forward' or  'Backward'
+            The defined transmission direction (and thus the calculated one) of the monitor.
+        """
+        result_name = 'expansion for ' + exp_mon_name
+        if not sim.fdtd.haveresult(result_name):
+            raise UserWarning('Cannot find mode expansion result')
+        dataset = sim.fdtd.getresult(exp_mon_name, result_name)
+        fwd_trans_coeff = dataset['a'] * np.sqrt(dataset['N'].real)
+        bac_trans_coeff = dataset['b'] * np.sqrt(dataset['N'].real)
+        if direction == 'Backward':
+            fwd_trans_coeff = bac_trans_coeff
+        return fwd_trans_coeff.flatten()
+
+    @staticmethod
+    def get_wavelength(sim):
+        """
+        This function will return the array according to simulation's setting
+        ---OUTPUT---
+        Array, represent the sampling points of wavelength
+        """
+        return Wavelength(sim.fdtd.getglobalsource('wavelength start'),
+                            sim.fdtd.getglobalsource('wavelength stop'),
+                            sim.fdtd.getglobalmonitor('frequency points')).asarray()
+
+    @staticmethod
+    def get_source_power(sim, wavelength):
+        """
+        This function will return the source power of the given wavelength
+        ---INPUT---
+        WAVELENGTH: 1-D array
+            The sampling points of the expected wavelength in 'm' unit
+        """
+        frequency = scipy.constants.speed_of_light / wavelength
+        sourcepower = sim.fdtd.sourcepower(frequency)
+        return  np.asarray(sourcepower).flatten()
+
+    @staticmethod
+    def fom_wavelength_integral(T_fwd_vs_wl, wavelength, target_T_forward, norm_p):
+        """
+        This function is used to calculate the fom through integral
+        ---INPUTS---
+        T_FWD_VS_WL:    1-D array
+            The calculated forward transmission coefficients
+        WAVELENGTH: 1-D array
+            The sampled points for the desired wavelength
+        TARGER_T_FORWARD:   Callable function
+            Wavelengths as input and target transmission coefficients as output
+        ---OUTPUT---
+        FOM:    Real number
+        """
+        target_T_fwd_vs_wl = target_T_forward(wavelength).flatten()
+        if len(wavelength) > 1:
+            wavelength_range = wavelength.max() - wavelength.min()
+            assert wavelength_range > 0, 'wavelength range should be positive'
+            T_fwd_integrand = np.power(np.abs(target_T_fwd_vs_wl), norm_p) / wavelength_range # used to normalize
+            const_term = np.power(np.trapz(y = T_fwd_integrand, x = wavelength), 1 / norm_p)
+            T_fwd_error = np.abs(target_T_fwd_vs_wl - T_fwd_vs_wl.flatten())
+            T_fwd_error_integrand = np.power(T_fwd_error, norm_p) / wavelength_range
+            error_term = np.power(np.trapz(y = T_fwd_error_integrand, x = wavelength), 1 / norm_p)
+            fom = const_term - error_term
+        else:
+            fom = np.abs(target_T_fwd_vs_wl) - np.abs(T_fwd_vs_wl.flatten() - target_T_fwd_vs_wl)
+        return fom.real
+
+    def make_forward_sim(self, sim):
+        """
+        This function is used to set the adjoint source before running forawrd simulation
+        --INPUT---
+        SIM:    Fdtd simulation handle.
+        """
+
+        sim.fdtd.setnamed(self.mode_src_name, 'enabled', False)
+
+    def make_adjoint_sim(self, sim):
+        """
+        This function is used to set the adjoint source before running adjoint simulation
+        --INPUT---
+        SIM:    Fdtd simulation handle.
+        """
+
+        sim.fdtd.setnamed(self.mode_src_name, 'enabled', True)

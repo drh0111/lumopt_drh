@@ -20,8 +20,7 @@ class Polygon(Geometry):
     DEPTH: Scalar, span of the polygon along z axis
     EPS_IN: Scalar or Material class, epsilon of the polygon material
     EPS_OUT: Scalar or Material class, epsilon of the material outside the polygon
-    EDGE_PRECISION: Positive integer, the number of quadrature points along each edge for computing the 
-        FOM gradient using shape derivative method
+    EDGE_PRECISION: Positive integer, the number of quadrature points along each edge for computing the FOM gradient using shape derivative method
     """
     def __init__(self, points, z, depth, eps_in, eps_out, edge_precision) -> None:
         self.points = points
@@ -57,7 +56,8 @@ class Polygon(Geometry):
         This funciton is used to add the geometry into the Lumerical file
 
         ---INPUTS---
-        PARAMS: 2 dimensional array with shape (num, 2). It represents the coordinates of the points
+        PARAMS:  1 dimensional array or 2-D array with shape (num, 2) or None. It is the   
+            position of the changed vertices aligned in 1/2 dimension.
         """
 
         sim.fdtd.switchtolayout()
@@ -76,6 +76,16 @@ class Polygon(Geometry):
         sim.fdtd.set('z span', self.depth)
         sim.fdtd.set('vertices', points)
         self.eps_in.set_script(sim, poly_name)
+
+    def update_geometry(self, params):
+        """
+        This function is used to change and record the vertices of the polygon in the optimization, notice that 'z' and 'depth' is assumed to be unchanged in our program
+        ---INPUTS---
+        PARAMS: 1 dimensional array. It is the position of the changed vertices aligned in 1 
+            dimension.
+        """
+
+        self.points = np.reshape(params, (-1, 2))
 
     def plot(self, ax):
         """
@@ -145,7 +155,7 @@ class FunctionDefinedPolygon(Polygon):
 
     def update_geometry(self, params):
         """
-        This function is used to change and record the parameters inthe optimization, notice that 'z' and 'depth' is assumed to be unchanged in our program
+        This function is used to change and record the parameters in the optimization, notice that 'z' and 'depth' is assumed to be unchanged in our program
         ---INPUTS---
         PARAMS: 1 dimensional array. It is the changed parameters for the user defined function
         """
