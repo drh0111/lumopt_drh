@@ -42,6 +42,20 @@ class Material():
             sim.fdtd.setnamed(poly_name, 'override mesh order from material database', True)
             sim.fdtd.setnamed(poly_name, 'mesh order', self.mesh_order)
 
+    def get_eps(self, wavelengths):
+        """
+        this function will return a 1-D array representing the epsilon versus wavelength
+        ---INPUT---
+        WAVELENGTH: 1-D array, represent the expected wavelength points
+        """
+        if hasattr(self, 'permittivity'):
+            assert len(wavelengths) == len(self.permittivity), "the size of input wavelength doesn't fit the Material's size of wavelength"
+            return self.permittivity
+        elif self.name == self.object_dielectric:
+            return self.base_eps * np.ones(wavelengths.shape)
+        else:
+            raise UserWarning('material has not been assigned to a geometric primitive yet.')
+
     @staticmethod
     def get_wavelengths(sim):
         """Create the wavelength object according to the settings of sim"""

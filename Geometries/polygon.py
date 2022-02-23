@@ -1,5 +1,4 @@
 import sys
-from tkinter import Y
 import numpy as np
 import scipy as sp
 import random
@@ -29,12 +28,14 @@ class Polygon(Geometry):
         self.eps_in = eps_in if isinstance(eps_in, Material) else Material(eps_in)
         self.eps_out = eps_out if isinstance(eps_out, Material) else Material(eps_out)
         self.edge_precision = int(edge_precision)
-        
+        self.operation = None # Because it is explicit object of geometry
+
         if self.depth <= 0:
             raise UserWarning('polygon depth must be positive')
         if self.edge_precision <= 0:
             raise UserWarning('edge precision should be a positive integer')
         
+        self.gradients = list()
         self.make_edge()
         self.hash = random.getrandbits(64)
         pass
@@ -47,6 +48,38 @@ class Polygon(Geometry):
             edges.append(Edge(self.points[i-1], point, self.eps_in, self.eps_out, self.z, self.depth))
         self.edges = edges 
         
+    def calculate_gradients(self, gradient_fields):
+        """
+        This function will calculate the gradients with respect to moving each point in x or y direction
+        ---INPUT---
+        GRADIENT_FIELDS: GradientFields class.
+        ---OUTPUT---
+        GRADIENTS:  2-D array with dimension (num_x_y, num_wl)
+        """
+        self.make_edge()
+        print('Calculateing gradients for {} edges'.format(len(self.edges)))
+        gradient_pairs_edges = []
+        for edge in self.edges:
+            gradient_pairs_edges.append(edge.derivative(gradient_fields, n_poins = self.edge_precision))
+            sys.stdout.write('.')
+            sys.stdout.flush()
+        print('')
+
+        # Till now the returned gradients for an edge derivative are the gradients with respect to moving each end point perpendicular to that edge. We need to transfer it to derivative w/ respect to moving each point in the x and y direction
+
+        gradients = []
+        for i, point in enumerate(self.points):
+            deriv_edge_1 = gradient_pairs_edges[i][1]
+            normal_edge_1 = self.edges[i].normal
+            deriv_edge_2 = gradient_pairs_edges[(i+1) % len(self.edges)][0]
+            normal_edge_2 = self.edges[(i+1) % len(self.edges)].normal
+            deriv_x = np.dot([1, 0, 0], np.outer(normal_edge_1, deriv_edge_1).squeeze() + np.outer(normal_edge_2, deriv_edge_2).squeeze()) # squeeze beacuse is is versus wl
+            deriv_y = np.dot([0, 1, 0], np.outer(normal_edge_1, deriv_edge_1).squeeze() + np.outer(normal_edge_2, deriv_edge_2).squeeze())
+            gradients.append(deriv_x)
+            gradients.append(deriv_y)
+        self.gradients.append(gradients)
+        return gradients
+
     def get_current_params(self):
         """Get the current points coordinate aligned in 1 dimension"""
         return np.reshape(self.points, (-1)).copy()
@@ -56,8 +89,8 @@ class Polygon(Geometry):
         This funciton is used to add the geometry into the Lumerical file
 
         ---INPUTS---
-        PARAMS:  1 dimensional array or 2-D array with shape (num, 2) or None. It is the   
-            position of the changed vertices aligned in 1/2 dimension.
+        PARAMS:  Must be 1 dimensional array or None.
+            It is the position of the changed vertices aligned in 1 dimension.
         """
 
         sim.fdtd.switchtolayout()
@@ -70,11 +103,11 @@ class Polygon(Geometry):
         if not only_update:
             sim.fdtd.addpoly()
             sim.fdtd.set('name', poly_name)
-        sim.fdtd.set('x', 0)
-        sim.fdtd.set('y', 0)
-        sim.fdtd.set('z', self.z)
-        sim.fdtd.set('z span', self.depth)
-        sim.fdtd.set('vertices', points)
+        sim.fdtd.setnamed(poly_name, 'x', 0)
+        sim.fdtd.setnamed(poly_name, 'y', 0)
+        sim.fdtd.setnamed(poly_name, 'z', self.z)
+        sim.fdtd.setnamed(poly_name, 'z span', self.depth)
+        sim.fdtd.setnamed(poly_name, 'vertices', points)
         self.eps_in.set_script(sim, poly_name)
 
     def update_geometry(self, params):
@@ -141,6 +174,7 @@ class FunctionDefinedPolygon(Polygon):
     def get_current_params(self):
         return self.current_params.copy()
 
+
     def add_geo(self, sim, params, only_update):
         """
         This function is used to set the geometry object in Lumerical
@@ -151,7 +185,37 @@ class FunctionDefinedPolygon(Polygon):
             points = self.points
         else:
             points = self.func(params)
-        super().add_geo(sim, points, only_update)
+        sim.fdtd.switchtolayout()
+        poly_name = 'polygon_{}'.format(self.hash)
+        if not only_update:
+            sim.fdtd.addpoly()
+            sim.fdtd.set('name', poly_name)
+        sim.fdtd.setnamed(poly_name, 'x', 0)
+        sim.fdtd.setnamed(poly_name, 'y', 0)
+        sim.fdtd.setnamed(poly_name, 'z', self.z)
+        sim.fdtd.setnamed(poly_name, 'z span', self.depth)
+        sim.fdtd.setnamed(poly_name, 'vertices', points)
+        self.eps_in.set_script(sim, poly_name)
+
+    def calculate_gradients(self, gradient_fields):
+        """
+        This function will calculate the gradients with respect to the optimized parameters
+        ---INPUT---
+        GRADIENT_FIELDS: GradientFields class.
+        ---OUTPUT---
+        GRADIENTS:  2-D array, with dimension (num_params, num_wl)
+        """
+        polygon_gradients = np.array(Polygon.calculate_gradients(gradient_fields))
+        polygon_points_linear = self.func(self.current_params).reshape(-1)
+        gradients = list()
+        for i, param in enumerate(self.current_params):
+            d_params = np.array(self.current_params).copy()
+            d_params[i] += self.dx
+            d_polygon_points_linear = self.func(d_params).reshape(-1)
+            partial_derivs = (d_polygon_points_linear - polygon_points_linear) / self.dx
+            gradients.append(np.dot(partial_derivs, polygon_gradients))
+        self.gradients.append(gradients)
+        return gradients
 
     def update_geometry(self, params):
         """

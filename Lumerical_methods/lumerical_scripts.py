@@ -68,24 +68,23 @@ def get_fields_on_cad(fdtd, monitor_name, field_result_name, get_eps, get_D, get
     NONINTERPOLATION:   Bool, whether
     UNFOLD_SYMMETRY:    Bool,
     """
-    unfold_symmetry_str = 'True' if unfold_symmetry else 'False'
+    unfold_symmetry_str = 'true' if unfold_symmetry else 'false' # be attention: no capital letter
     fdtd.eval('options = struct; options.unfold = {};'.format(unfold_symmetry_str) + 
-                '{} = struct;'.format(field_result_name) + 
-                '{0}.E = getresult({1}, "E", options);'.format(field_result_name, monitor_name))
+                '{} = struct;'.format(field_result_name) + '{0}.E = getresult("{1}", "E", options);'.format(field_result_name, monitor_name))
 
     if get_eps or get_D:
         index_monitor_name = monitor_name + '_index'
-        fdtd.eval('{0}.index = getresult({1}, "index", options);'.format(field_result_name, index_monitor_name))
+        fdtd.eval('{0}.index = getresult("{1}", "index", options);'.format(field_result_name, index_monitor_name))
 
     if get_H:
-        fdtd.eval('{0}.H = getresult({1}, "H", options);'.format(field_result_name, monitor_name))
+        fdtd.eval('{0}.H = getresult("{1}", "H", options);'.format(field_result_name, monitor_name))
     
     if noninterpolation:
         fdtd.eval('{}.delta = struct;'.format(field_result_name) + 
-                    '{0}.delta.x = getresult({1}, "delta_x", options);'.format(field_result_name, monitor_name) + 
-                    '{0}.delta.y = getresult({1}, "delta_y", options);'.format(field_result_name, monitor_name))
+                    '{0}.delta.x = getresult("{1}", "delta_x", options);'.format(field_result_name, monitor_name) + 
+                    '{0}.delta.y = getresult("{1}", "delta_y", options);'.format(field_result_name, monitor_name))
 
         if fdtd.getresult(monitor_name, 'dimension') == 3:
-            fdtd.eval('{0}.delta.z = getresult({1}, "delta_z", options);'.format(field_result_name, monitor_name))
+            fdtd.eval('{0}.delta.z = getresult("{1}", "delta_z", options);'.format(field_result_name, monitor_name))
         else:
             fdtd.eval('{}.delta.z = 0.0;'.format(field_result_name))

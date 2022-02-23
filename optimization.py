@@ -1,13 +1,13 @@
 import os
 import inspect
 import shutil
-from matplotlib.pyplot import get
 import numpy as np
 
 from Utilities.base_script import BaseScript
 from Utilities.wavelength import Wavelength
 from Utilities.plotter import Plotter
 from Utilities.simulation import Simulation
+from Utilities.gradients import GradientFields
 from Figures_of_merit.modematch import ModeMatch
 from Lumerical_methods.lumerical_scripts import get_field
 
@@ -36,6 +36,9 @@ class Optimization(SuperOptimization):
         gradients or not.
     STORE_ALL:  Bool class. It is the flag showing whether store all the files during iteration 
         or not
+    ---OTHER VARIABLES---
+    FORWARD_FIELDS:
+    ADJOINT_FIELDS:
     """
     def __init__(self, base_script, fom, geometry, optimizer, wavelength, use_var_fdtd = False,  hide_fdtd_cad = False, dir_grad = True, plot_hist = True, store_all = True) -> None:
         self.base_script = base_script if isinstance(base_script, BaseScript) else BaseScript(base_script)
@@ -90,7 +93,49 @@ class Optimization(SuperOptimization):
         # Initialize the properties of Optimizer, Geometry and (fom, jac)
         start_params = self.geometry.get_current_params()
         self.geometry.add_geo(self.sim, start_params, only_update = False)
+
+        callable_fom = self.callable_fom
+        callable_jac = self.callable_jac
+        bounds = self.geometry.bounds
+
+        def plotting_fun():
+            """it will be used as PLOTTING_FUN to initialize the optimizer"""
+            self.plotter.update(self)
+
+            # This part is not understood yet
+            if hasattr(self.geometry, 'to_file'):
+                self.geometry.to_file('parameters_{}.npz'.format(self.optimizer.iter))
+
+            with open('convergence_report.txt', 'a') as f:
+                f.write('{}, {}'.format(self.optimizer.iter, self.optimizer.fom_hist[-1]))
+                # This part is not understood yet
+                if hasattr(self.geometry, 'write_status'):
+                    self.geometry.write_status(f)
+                f.write('\n')
+
+            self.fom.initialize(self.sim)
+            self.optimizer.initialize(start_params, callable_fom, callable_jac, bounds, plotting_fun)
+
+    def run(self):
+        """
+        After the initialization (__init__), this final function that will be directly called by the user to run the overall optimization
+        """
+        self.initialize()
+        self.init_plotter()
+
+        if self.plotter.movie:
+            # This part hasn't been figured out yet
+            with self.plotter.writer.saving(self.plotter.fig, 'optimization.mp4', 100):
+                self.optimizer.run()
+        else:
+            self.optimizer.run()
         
+        final_fom = np.abs(self.hist_fom[-1])
+        final_params = self.hist_params[-1]
+        print("FINAL FOM = {}".format(final_fom))
+        print("FINAL PARAMETERS = {}".format(final_params))
+        return final_fom, final_params
+
     def make_forward_sim(self, params):
         """
         This function is used to set all the settings before running forward solver
@@ -182,9 +227,28 @@ class Optimization(SuperOptimization):
 
     def calculate_gradients(self):
         """
-        
+        After getting the forward fields and adjoint fields, this function is used to calculate the gradients of fom with respect to parameters. There are two method to calculate the gradients:
+            1) dir_grad == True. Use direct method (perturb the parameters) to get the permittivity derivative calculated directly from meshing
+            2) dir_grad == False. Use the shape derivative approximation described in Owen Miller's thesis
         """
-        
+        print('Calculating gradients')
+        fdtd = self.sim.fdtd
+        self.gradient_fields = GradientFields(self.forward_fields, self.adjoint_fields)
+        self.sim.fdtd.switchtolayout()
+        if self.dir_grad:
+            self.geometry.d_eps_on_cad(self.sim)
+            fom_partial_derivs_vs_wl = GradientFields.spatial_gradient_integral_on_cad(self.sim, 'forward_fields', 'adjoint_fields', self.adjoint_fields.scaling_factor)
+            self.gradients = self.fom.fom_gradient_wavelength_integral(fom_partial_derivs_vs_wl.transpose(), self.forward_fields.wl) # tranpose is for the alignment of input
+        else:
+            if hasattr(self.geometry, 'calculate_gradients_on_cad'):
+                # This case is not understood yet
+                fom_partial_derivs_vs_wl = self.geometry.calculate_gradients_on_cad(self.sim, 'forward_fields', 'adjoint_fields', self.adjoint_fields.scaling_factor)
+                self.gradients = self.fom.fom_gradient_wavelength_integral(fom_partial_derivs_vs_wl, self.forward_fields.wl)
+            else:
+                fom_partial_derivs_vs_wl = self.geometry.calculate_gradients(self.gradient_fields)
+                self.gradients = self.fom.fom_gradient_wavelength_integral(fom_partial_derivs_vs_wl, self.forward_fields.wl)
+        return self.gradients
+                
     def callable_fom(self, params):
         """
         This function is used to calculate the figures of merit
@@ -204,7 +268,7 @@ class Optimization(SuperOptimization):
         RETURN: Array, the jacobian gradients of the figure of merits
         """
         self.run_adjoint_solves(params)
-        return self.calculate_gradients
+        return self.calculate_gradients()
 
     @staticmethod
     def go_to_new_opts_folder(calling_file_name, base_script):
@@ -289,7 +353,7 @@ class Optimization(SuperOptimization):
     @staticmethod
     def add_index_monitor(sim, mon_name):
         """
-        This function is used to add the dielectric index monitor in the simulation, be aware that 'mon_name' is not the monitor for the calculation of fom
+        This function is used to add the dielectric index monitor in the simulation, be aware that 'mon_name' is not the monitor for the calculation of fom, it is monitor based on which we will calculate gradients, and is usually named 'opt_fields'
         ---INPUTS---
         MON_NAME: String class. It is the name of monitor based on which we will set the 
             properties of index monitor, like monitor type...

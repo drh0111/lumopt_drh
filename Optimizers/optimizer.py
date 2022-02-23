@@ -31,6 +31,8 @@ class Optimizer:
         ---INPUTS---
         START_PARAMS: Row vector (numpy array), without scaling
         BOUNDS: Parameters are aligned in column direction
+        PLOTTING_FUN:   Plotter class.
+            It is responsilble for plotting the data field during the optimization
         """
         assert bounds.shape[0] == start_params.size and bounds.shape[1] == 2
         assert self.scaling_factor.size == 1 or self.scaling_factor.size == start_params.size
@@ -38,7 +40,6 @@ class Optimizer:
         self.bounds = bounds * self.scaling_factor.reshape((start_params.size, 1))
         self.callback = self.define_callback(plotting_fun)
         self.reset_start_point(start_params)
-        pass
 
     def reset_start_point(self, start_params):
         """

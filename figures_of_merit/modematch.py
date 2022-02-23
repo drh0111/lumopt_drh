@@ -330,3 +330,45 @@ class ModeMatch:
         """
 
         sim.fdtd.setnamed(self.mode_src_name, 'enabled', True)
+
+    def fom_gradient_wavelength_integral(self, T_fwd_partial_derivs_vs_wl, wl):
+        """
+        This function is used to calculate the final FOM gradients over parameters after considering the function's form (norm_p staff) and integrating over wavelength
+        ---INPUT---
+        WL: 1-D array.
+            The selected wavelength points for T_fwd_partial_derivs_vs_wl
+        """
+        assert np.allclose(wl, self.wavelength), 'wavelength pts of the desired variable does not fit'
+        return ModeMatch.fom_gradient_wavelength_integral_impl(self.T_fwd_vs_wl, T_fwd_partial_derivs_vs_wl, self.targe_T_forward(wl).flatten(), self.wavelength, self.norm_p)
+
+    @staticmethod
+    def fom_gradient_wavelength_integral_impl(T_fwd_vs_wl ,T_fwd_partial_derivs_vs_wl , target_T_fwd_vs_wl, wl, norm_p):
+        """
+        This implicit function is used in the end to calculate the final FOM gradients over parameters after considering the function's form (norm_p staff) and integrating over wavelength
+        ---INPUTS---
+        T_FWD_VS_WL: 1-D array.
+            This is the calculated T_fwd versus wavelength
+        T_FWD_PARTIAL_DERIVS_VS_WL: 2-D array with shape (num_param, num_wl).
+            This is the FOM gradients over parameters versus wavelength
+        TARGET_T_FWD_VS_WL:   1-D array.
+            This is the target T_fwd versus wavelength
+        WL:`1-D array.
+            The selected wavelength points
+        NORMP_P:    Real number.
+            the exponent of the final FOM function
+        """
+        if wl.size > 1:
+            assert T_fwd_partial_derivs_vs_wl.shape[1] == wl.size, 'inconsist wavelength points'
+            wavelength_range = wl.max() - wl.min()
+            T_fwd_error = T_fwd_vs_wl - target_T_fwd_vs_wl
+            T_fwd_error_integrand = np.power(np.abs(T_fwd_error), norm_p) / wavelength_range
+            constant_factor = -1.0 * np.power(np.trapz(y = T_fwd_error_integrand, x = wl), 1/norm_p - 1) # it is the multiplier constant factor
+            integral_kernel = np.power(np.abs(T_fwd_error), norm_p - 1) * np.sign(T_fwd_error) / wavelength_range
+            # Problem: Thy it will be faster? (see standard code)
+            d = np.diff(wl)
+            quad_weight = np.append(np.append(d[0], d[ : -1] + d[1 : ]), d[-1]) / 2
+            v = constant_factor * integral_kernel * quad_weight
+            T_fwd_partial_derivs = T_fwd_partial_derivs_vs_wl.dot(v)
+        else:
+            T_fwd_partial_derivs = -1.0 * np.sign(T_fwd_vs_wl - target_T_fwd_vs_wl) * T_fwd_partial_derivs_vs_wl.flatten()
+        return T_fwd_partial_derivs.flatten().real

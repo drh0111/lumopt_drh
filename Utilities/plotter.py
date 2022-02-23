@@ -1,5 +1,3 @@
-from re import S
-from tkinter.messagebox import NO
 import matplotlib.pyplot as plt
 from matplotlib.animation import FileMovieWriter
 
