@@ -53,8 +53,8 @@ class Optimization(SuperOptimization):
         self.store_all = bool(store_all)
         self.plotter = None # Initialize it when we know the number of parameters
         self.unfold_symmetry = geometry.unfold_symmetry
+        # Be aware that hist_fom, hist_param and the print number can be different with optimizer's ones, personally i would attribute it to the multiple use of callable_fom in one iteration like line-search
         self.hist_fom = []
-        self.hist_grad = []
         self.hist_params = []
 
         if self.dir_grad:
@@ -72,7 +72,7 @@ class Optimization(SuperOptimization):
     def init_plotter(self):
         """This method is used to initialize the plot function"""
         if self.plotter == None:
-            self.plotter = Plotter(movie = False, plot_hist = self.plotter_hist)
+            self.plotter = Plotter(movie = False, plot_hist = self.plot_hist)
         return self.plotter
 
     def initialize(self):
@@ -83,12 +83,15 @@ class Optimization(SuperOptimization):
 
         # Set some trivial properties of FDTD
         self.base_script(self.sim.fdtd)
-        Optimization.set_global_wavelength(self.sim.fdtd, self.wavelength)
+        Optimization.set_global_wavelength(self.sim, self.wavelength)
         Optimization.set_source_wavelength(self.sim, 'source', self.fom.mul_freq_src, len(self.wavelength))
         self.sim.fdtd.setnamed('opt_fields', 'override global monitor settings', False)
         self.sim.fdtd.setnamed('opt_fields', 'spatial interpolation', 'none')
         Optimization.add_index_monitor(self.sim, 'opt_fields')
-        Optimization.set_use_legacy_conformal_interface_detection(self.sim, self.dir_grad)
+
+        # The use of it still not that sure, but personal idea: while using d_epses don't use conformal mesh which will induce eps tensor
+        if self.dir_grad:
+            Optimization.set_use_legacy_conformal_interface_detection(self.sim, False)
 
         # Initialize the properties of Optimizer, Geometry and (fom, jac)
         start_params = self.geometry.get_current_params()
@@ -113,8 +116,8 @@ class Optimization(SuperOptimization):
                     self.geometry.write_status(f)
                 f.write('\n')
 
-            self.fom.initialize(self.sim)
-            self.optimizer.initialize(start_params, callable_fom, callable_jac, bounds, plotting_fun)
+        self.fom.initialize(self.sim)
+        self.optimizer.initialize(start_params, callable_fom, callable_jac, bounds, plotting_fun)
 
     def run(self):
         """
@@ -177,6 +180,7 @@ class Optimization(SuperOptimization):
         if self.store_all:
             self.sim.save()
         self.hist_fom.append(fom)
+        self.hist_params.append(params)
         print('FOM = {}'.format(fom))
         return fom
     
@@ -187,7 +191,7 @@ class Optimization(SuperOptimization):
         PARAMS: 1-D array. The parameters of polygon (depends on its geometry type).
         """
         self.sim.fdtd.switchtolayout()
-        assert np.allclose(params, self.geometry.get_current_params), 'discrepancy of parameters, run forward simulation (update_params) first'
+        assert np.allclose(params, self.geometry.get_current_params()), 'discrepancy of parameters, run forward simulation (update_params) first'
         self.geometry.add_geo(self.sim, params = None, only_update = True)
         self.sim.fdtd.setnamed('source', 'enabled', False)
         self.fom.make_adjoint_sim(self.sim)
@@ -330,7 +334,7 @@ class Optimization(SuperOptimization):
         """
         if sim.fdtd.getnamednumber(source_name) != 1:
             raise UserWarning('there should be one and only one source named {} in the simulation'.format(source_name))
-        if sim.fdtd.getnamed(source_name, 'override global source setting'):
+        if sim.fdtd.getnamed(source_name, 'override global source settings'):
             print('The wavelength setting of the source will bw superseded by the global settings')
         sim.fdtd.setnamed(source_name, 'override global source settings', False)
 
@@ -412,6 +416,8 @@ class Optimization(SuperOptimization):
 
     @staticmethod
     def set_use_legacy_conformal_interface_detection(sim, flagVal):
+
+        flagVal = not flagVal
         # The meaning of this function is unknown yet
         if sim.fdtd.getnamednumber('FDTD') == 1:
             sim.fdtd.select('FDTD')
@@ -421,9 +427,8 @@ class Optimization(SuperOptimization):
             raise UserWarning('There shoule be FDTD or varFDTD object')
         
         if bool(sim.fdtd.haveproperty('use legacy conformal interface detection')):
-            sim.fdtd.set('use legacy conformal interface detection', flagVal)
+            sim.fdtd.set('use legacy conformal interface detection',flagVal)
             sim.fdtd.set('conformal meshing refinement', 51)
-            sim.fdtd.set('mesh tolerance', 1.0/1.134e14)
+            sim.fdtd.set('meshing tolerance', 1.0/1.134e14)
         else:
             raise UserWarning('need more recent version of FDTD tor the permittivity derivatives will not be accurate')
-

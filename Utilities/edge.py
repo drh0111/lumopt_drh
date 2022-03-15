@@ -23,13 +23,13 @@ class Edge():
 
         normal_vec = np.flipud(first_point - second_point)
         normal_vec = np.array([-normal_vec[0], normal_vec[1], 0])
-        self.norm = normal_vec / np.linalg.norm(normal_vec)
+        self.normal = normal_vec / np.linalg.norm(normal_vec)
 
     def derivative(self, gradient_fields, n_points):
         """
         This function is used to calculate the derivative for moving the two extremity points of an edge in the direction normal to the edge for the 2D and 3D cases
         """
-        if len(gradient_fields.forwar_fields.z) == 1:
+        if len(gradient_fields.forward_fields.z) == 1:
             return self.derivative_2D(gradient_fields, n_points)
         else:
             return self.derivative_3D(gradient_fields, n_points)
@@ -60,15 +60,15 @@ class Edge():
         """
         points_along_edge_on_unity_scale = np.linspace(0, 1, n_points)
         points_along_edge_interp_fun = lambda r: (1 - r) * self.first_point + r * self.second_point
-        points_along_edge = map(points_along_edge_interp_fun, points_along_edge_on_unity_scale)
+        points_along_edge = list(map(points_along_edge_interp_fun, points_along_edge_on_unity_scale))
         # integrand in (5.28) of Owen Miller's thesis
-        integrand_interp_fun = GradientFields.boundary_perturbation_integrand
+        integrand_interp_fun = gradient_fields.boundary_perturbation_integrand()
         wavelengths = gradient_fields.forward_fields.wl
         eps_in = self.eps_in.get_eps(wavelengths)
         eps_out = self.eps_out.get_eps(wavelengths)
         integrand_along_edge = list()
         for idx, wl in enumerate(wavelengths):
-            integrand_along_edge_fun = lambda point: integrand_along_edge_fun(point[0], point[1], self.z, wl, self.norm, eps_in[idx], eps_out[idx])
+            integrand_along_edge_fun = lambda point: integrand_interp_fun(point[0], point[1], self.z, wl, self.normal, eps_in[idx], eps_out[idx])
             integrand_along_edge.append(list(map(integrand_along_edge_fun, points_along_edge)))
         integrand_along_edge = np.array(integrand_along_edge).transpose().squeeze()
         tangent_vec_length = np.sqrt(np.sum(np.power(self.first_point - self.second_point, 2)))

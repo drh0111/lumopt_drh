@@ -16,6 +16,7 @@ class Fields():
         X:  1-D array. Represent the grids on x axis
         Y:  1-D array. Represent the grids on y axis
         Z:  1-D array. Represent the grids on z axis
+        Be aware that these points are all the grid points (not translated points on Yee grid)
         WL: 1-D array. Represent the grids on wavelength
         E:  Ndarray (x, y, z, wl, F). Represent the E field.
         D:  Ndarray (x, y, z, wl, F). Represent the D field.
@@ -56,6 +57,28 @@ class Fields():
         if not (eps is None):
             self.geteps = self.make_field_interpolation_object(eps)
 
+    def plot(self, ax, title, cmap):
+        """
+        This function is used to plot the 2D field's norm image on the given axe
+        ---INPUTS---
+        AX: The handle of axe that we will plot on
+        TITLE:  String, the title of the picture
+        CMAP:   String, name of the desired colormap
+        """
+        ax.clear()
+        xx, yy = np.meshgrid(self.x[1 : -1], self.y[1 : -1]) # Problem: the use of 1 : -1
+        z = (min(self.z) + max(self.z))/2 + 1e-10 # Problem: the use of 1e-10
+        wl = self.wl[0]
+        E_fields = [self.getfield(x, y, z, wl) for x, y in zip(xx, yy)] # Notice that x, y here is array because xx and yy are 2D matrix
+        Ex = np.array([E[0] for E in E_fields])
+        Ey = np.array([E[1] for E in E_fields])
+        Ez = np.array([E[2] for E in E_fields])
+
+        ax.pcolormesh(xx * 1e6, yy * 1e6, np.abs(Ex**2 + Ey**2 + Ez**2), cmap = plt.get_cmap(cmap)) # Problem: the meaning of this kind of norm
+        ax.set_title(title + ' $E^2$')
+        ax.set_xlabel('x (um)')
+        ax.set_ylabel('y (um)')
+    
     def scale(self, dimension, factor):
         """
         This function is used to scale the E, D, and H field along the desired dimension with the given factor
@@ -67,19 +90,19 @@ class Fields():
         """
         if hasattr(self.E, 'dtype'): # make sure it exist and is array
             if self.E.shape[dimension] == len(factor):
-                self.E = np.concatenate([np.take(self.E, [index], axis = dimension) for index in range(len(factor))] , axis = dimension)
+                self.E = np.concatenate([np.take(self.E, [index], axis = dimension) * factor[index] for index in range(len(factor))] , axis = dimension)
                 self.getfield = self.make_field_interpolation_object(self.E)
             else:
                 raise UserWarning('the length of factor does not fit the E field')
         if hasattr(self.D, 'dtype'):
             if self.D.shape[dimension] == len(factor):
-                self.D = np.concatenate([np.take(self.D, [index], axis = dimension) for index in range(len(factor))] , axis = dimension)
+                self.D = np.concatenate([np.take(self.D, [index], axis = dimension) * factor[index] for index in range(len(factor))] , axis = dimension)
                 self.getDfield = self.make_field_interpolation_object(self.D)
             else:
                 raise UserWarning('the length of factor does not fit the D field')
         if hasattr(self.H, 'dtype'):
             if self.H.shape[dimension] == len(factor):
-                self.H = np.concatenate([np.take(self.H, [index], axis = dimension) for index in range(len(factor))] , axis = dimension)
+                self.H = np.concatenate([np.take(self.H, [index], axis = dimension) * factor[index] for index in range(len(factor))] , axis = dimension)
                 self.getfield = self.make_field_interpolation_object(self.H)
             else:
                 raise UserWarning('the length of factor does not fit the H field')
@@ -112,6 +135,7 @@ class FieldsNoInterp(Fields):
     This class of container will should be used when the interpolation option of Lumerical FDTD is diabled, which means Lumerical will not interpolate the field (because Yee grid is staggered grid) to get the field data at the same position.
     """
     def __init__(self, x, y, z, wl, deltas, E, D=None, H=None, eps=None) -> None:
+        """Be aware that these points are also all the grid points (not translated points on Yee grid)"""
         def process_input(input):
             """precondition the INPUT so that it is proper array"""
             if type(input) is float:
@@ -176,6 +200,28 @@ class FieldsNoInterp(Fields):
 
         return field_interpolator
 
+    def plot(self, ax, title, cmap):
+        """
+        This function is used to plot the 2D field's norm image on the given axe
+        ---INPUTS---
+        AX: The handle of axe that we will plot on
+        TITLE:  String, the title of the picture
+        CMAP:   String, name of the desired colormap
+        """
+        ax.clear()
+        xx, yy = np.meshgrid(self.x[1 : -1], self.y[1 : -1]) # Problem: the use of 1 : -1
+        z = (min(self.z) + max(self.z))/2 + 1e-10 # Problem: the use of 1e-10
+        wl = self.wl[0]
+        E_fields = [self.getfield(x, y, z, wl) for x, y in zip(xx, yy)] # Notice that x, y here is array because xx and yy are 2D matrix
+        Ex = np.array([E[0] for E in E_fields])
+        Ey = np.array([E[1] for E in E_fields])
+        Ez = np.array([E[2] for E in E_fields])
+
+        ax.pcolormesh(xx * 1e6, yy * 1e6, np.abs(Ex**2 + Ey**2 + Ez**2), cmap = plt.get_cmap(cmap)) # Problem: the meaning of this kind of norm
+        ax.set_title(title + ' $E^2$')
+        ax.set_xlabel('x (um)')
+        ax.set_ylabel('y (um)')
+
     def scale(self, dimension, factor):
         """
         This function is used to scale the E, D, and H field along the desired dimension with the given factor
@@ -187,19 +233,19 @@ class FieldsNoInterp(Fields):
         """
         if hasattr(self.E, 'dtype'): # make sure it exist and is array
             if self.E.shape[dimension] == len(factor):
-                self.E = np.concatenate([np.take(self.E, [index], axis = dimension) for index in range(len(factor))] , axis = dimension)
+                self.E = np.concatenate([np.take(self.E, [index], axis = dimension) * factor[index] for index in range(len(factor))] , axis = dimension)
                 self.getfield = self.make_field_interpolation_object_nointerp(self.E)
             else:
                 raise UserWarning('the length of factor does not fit the E field')
         if hasattr(self.D, 'dtype'):
             if self.D.shape[dimension] == len(factor):
-                self.D = np.concatenate([np.take(self.D, [index], axis = dimension) for index in range(len(factor))] , axis = dimension)
+                self.D = np.concatenate([np.take(self.D, [index], axis = dimension) * factor[index] for index in range(len(factor))] , axis = dimension)
                 self.getDfield = self.make_field_interpolation_object_nointerp(self.D)
             else:
                 raise UserWarning('the length of factor does not fit the D field')
         if hasattr(self.H, 'dtype'):
             if self.H.shape[dimension] == len(factor):
-                self.H = np.concatenate([np.take(self.H, [index], axis = dimension) for index in range(len(factor))] , axis = dimension)
+                self.H = np.concatenate([np.take(self.H, [index], axis = dimension) * factor[index] for index in range(len(factor))] , axis = dimension)
                 self.getfield = self.make_field_interpolation_object(self.H)
             else:
                 raise UserWarning('the length of factor does not fit the H field')

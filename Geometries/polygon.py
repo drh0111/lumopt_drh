@@ -60,7 +60,7 @@ class Polygon(Geometry):
         print('Calculateing gradients for {} edges'.format(len(self.edges)))
         gradient_pairs_edges = []
         for edge in self.edges:
-            gradient_pairs_edges.append(edge.derivative(gradient_fields, n_poins = self.edge_precision))
+            gradient_pairs_edges.append(edge.derivative(gradient_fields, n_points = self.edge_precision))
             sys.stdout.write('.')
             sys.stdout.flush()
         print('')
@@ -78,7 +78,7 @@ class Polygon(Geometry):
             gradients.append(deriv_x)
             gradients.append(deriv_y)
         self.gradients.append(gradients)
-        return gradients
+        return np.array(gradients)
 
     def get_current_params(self):
         """Get the current points coordinate aligned in 1 dimension"""
@@ -128,15 +128,15 @@ class Polygon(Geometry):
         """
         points = self.points.copy()
         points = np.reshape(points, (-1, 2))
-        x_p = points[:, -1] * 1e6
-        y_p = points[:, -1] * 1e6
+        x_p = points[:, 0] * 1e6
+        y_p = points[:, 1] * 1e6
         ax.clear()
         ax.plot(x_p, y_p)
         ax.set_title('Geometry')
         ax.set_ylim(min(y_p), max(y_p))
         ax.set_xlim(min(x_p), max(x_p))
-        ax.xlabel('x (um)')
-        ax.ylable('y (um)')
+        ax.set_xlabel('x (um)')
+        ax.set_ylabel('y (um)')
         return True
 
 class FunctionDefinedPolygon(Polygon):
@@ -144,8 +144,8 @@ class FunctionDefinedPolygon(Polygon):
     This class is a subclass of 'Polygon class', the difference is that the vertices are given by an user-defined function, which when given a set of parameters will return a numpy array with the form [(x0, y0), ..., (xn, yn)], notice that the vertices should in the counter-clockwise direction
 
     ---INPUTS---
-    FUNC:   Callable function, it can recieve the parameters and return array that defines the
-        polygon's vertices.
+    FUNC:   Callable function, it can recieve the parameters and return array that defines 
+        the polygon's vertices.
     START_PARAMS:   One dimensional array, it is the initial parameters of the function
     BOUNDS: Array with dimension (num, 2), with the first column representing the minimum and 
         second column representing the maximum, it shows the bounds for the parameters
@@ -205,7 +205,7 @@ class FunctionDefinedPolygon(Polygon):
         ---OUTPUT---
         GRADIENTS:  2-D array, with dimension (num_params, num_wl)
         """
-        polygon_gradients = np.array(Polygon.calculate_gradients(gradient_fields))
+        polygon_gradients = np.array(Polygon.calculate_gradients(self, gradient_fields))
         polygon_points_linear = self.func(self.current_params).reshape(-1)
         gradients = list()
         for i, param in enumerate(self.current_params):
@@ -215,7 +215,7 @@ class FunctionDefinedPolygon(Polygon):
             partial_derivs = (d_polygon_points_linear - polygon_points_linear) / self.dx
             gradients.append(np.dot(partial_derivs, polygon_gradients))
         self.gradients.append(gradients)
-        return gradients
+        return np.array(gradients)
 
     def update_geometry(self, params):
         """

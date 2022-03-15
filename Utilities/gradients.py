@@ -1,5 +1,7 @@
 import numpy as np
 import scipy as sp
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import scipy.constants
 import lumapi
 
@@ -25,6 +27,45 @@ class GradientFields():
 
         self.forward_fields = forward_fields
         self.adjoint_fields = adjoint_fields
+
+    def sparse_perturbation_field(self, x, y, z, wl, real = True):
+        """
+        This function is used to calculate the gradient under the sparse formula (do not consider the parallel and perpendicular component)
+        ---INPUTS---
+        X: Float or array, representing the x coordinates of the desired points
+        Y: Float or array, representing the y coordinates of the desired points
+        Z: Float or array, representing the z coordinates of the desired points
+        WL: Float or array, representing the wavelengths of the desired points
+        REAL: Boolean, whether only return the real part or not
+        """
+        result = sum(2.0 * sp.constants.epsilon_0 * self.forward_fields.getfield(x, y, z, wl) * self.adjoint_fields.getfield(x, y, z, wl))
+        return np.real(result) if real else result
+
+    def plot(self, fig, ax_forward, ax_gradients, original_grid = True):
+        ax_forward.clear()
+        self.forward_fields.plot(ax_forward, title = 'Forward Fields', cmap = 'Blues')
+        self.plot_gradients(ax_gradients, original_grid)
+
+    def plot_gradients(self, ax_gradients, original_grid = True):
+        """This function is used to calculate the gradient fields"""
+        ax_gradients.clear()
+
+        if original_grid:
+            x = self.forward_fields.x
+            y = self.forward_fields.y
+        else:
+            x = np.linspace(min(self.forward_fields.x), max(self.forward_fields.x), 50)
+            y = np.linspace(min(self.forward_fields.y), max(self.forward_fields.y), 50)
+        xx, yy = np.meshgrid(x[1:-1], y[1:-1])
+
+        z = (min(self.forward_fields.z) + max(self.forward_fields.z)) / 2
+        wl = self.forward_fields.wl[0]
+        sparse_pert = [self.sparse_perturbation_field(x, y, z, wl) for x, y in zip(xx, yy)]
+
+        im = ax_gradients.pcolormesh(xx * 1e6, yy * 1e6, sparse_pert, cmap = plt.get_cmap('bwr'))
+        ax_gradients.set_title('Sparse perturbation gardient fields')
+        ax_gradients.set_xlabel('x (um)')
+        ax_gradients.set_ylabel('y (um)')
 
     def boundary_perturbation_integrand(self):
         """
@@ -77,7 +118,7 @@ class GradientFields():
         sim.fdtd.eval("partial_fom_derivs_vs_lambda = matrix(num_wl, num_params);" +
                     "   for (i_wl = [1 : num_wl]){" + 
                     "       for(i_param = [1 : num_params]){" +
-                    "           spatial_integrand = pinch(sum(grad_fields(:, :, :, i_wl, :) * d_epses{i_param} * wl_scaling_factor, 5), 4);" +
+                    "           spatial_integrand = pinch(sum(grad_fields(:, :, :, i_wl, :) * d_epses{i_param} * wl_scaling_factor(i_wl), 5), 4);" +
                     "           partial_fom_derivs_vs_lambda(i_wl, i_param) = integrate2(spatial_integrand, [1 : 3], {0}.E.x, {0}.E.y, {0}.E.z);".format(forward_fields) + 
                     "       }" + 
                     "   }")

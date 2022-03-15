@@ -27,7 +27,7 @@ class Material():
 
     def set_script(self, sim, poly_name):
         """This function is used to set the polygon object ('name')'s material property to the given one"""
-        sim.fdtd.setnamed('poly_name', 'material', self.name)
+        sim.fdtd.setnamed(poly_name, 'material', self.name)
         wavelengths = Material.get_wavelengths(sim)
         freq_array = scipy.constants.speed_of_light / wavelengths.asarray()
 

@@ -1,4 +1,3 @@
-from re import S
 import scipy as sp
 import scipy.optimize as spo
 

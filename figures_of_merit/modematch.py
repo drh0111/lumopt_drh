@@ -24,7 +24,7 @@ class ModeMatch:
         MONITOR_NAME:   String. The name of monitor from which we will get the information of 
             fields
         MODE_NUMB:      positive integer or some specific string. The index of eigenmode or 
-            string that Lumerical can recognize which we will use mode expansion monitor to calculate, and then used in the mode source
+            string that Lumerical can recognize which we will use mode expansion monitor to calculate, and then used in the mode source for adjoint simulation
         DIRECTION:      String. The direction of the injected source, 'Forward' or 'Backward'
         MUL_FREQ_SRC:   False or True. Represent whether the multifrequncy mode for source in 
             Lumerical is on or off.
@@ -48,7 +48,7 @@ class ModeMatch:
         else:
             self.mode_num = mode_num
 
-        assert direction == 'foward' or direction == 'Backward'
+        assert direction == 'Forward' or direction == 'Backward'
         self.direction  = direction
         self.mul_freq_src = mul_freq_src
 
@@ -56,7 +56,7 @@ class ModeMatch:
         test_result = target_T_foward(np.linspace(0.1e-6, 10e-6, 1000))
         if test_result.size != 1000:
             raise UserWarning('target_T_foward should return as many values as the input wavelngth')
-        elif test_result.min() < 0 or test_result.max() > 0:
+        elif np.any(test_result.min() < 0) or np.any(test_result.max() > 1):
             raise UserWarning('target_T_foward should return values between 0 and 1')
         else:
             self.targe_T_forward = target_T_foward
@@ -102,7 +102,7 @@ class ModeMatch:
         
         # Get the orientation of the monitor
         monitor_type = sim.fdtd.getnamed(self.monitor_name, 'monitor type')
-        if monitor_type == '2D X-noraml':
+        if monitor_type == '2D X-normal':
             orientation = 'x'
         elif monitor_type == '2D Y-normal':
             orientation = 'y'
@@ -155,11 +155,11 @@ class ModeMatch:
         if sim.fdtd.getnamednumber(exp_mon_name) != 0:
             raise UserWarning('a mode expansion monitor already exist')
         else:
-            sim.fdtd.addmodexpansion()
-            sim.fdtd.setnamed('name', exp_mon_name)
+            sim.fdtd.addmodeexpansion()
+            sim.fdtd.set('name', exp_mon_name)
             sim.fdtd.setexpansion(exp_mon_name, monitor_name)
             sim.fdtd.setnamed(exp_mon_name, 'auto update before analysis', True)
-            sim.fdtd.setnamed(exp_mon_name, 'override global monitor setting', False)
+            sim.fdtd.setnamed(exp_mon_name, 'override global monitor settings', False)
 
             # Synchronize the properties of mode expansion monitor
             props = ['monitor type']
@@ -168,12 +168,12 @@ class ModeMatch:
             props.extend(geo_props)
 
             for prop in props:
-                prop_val = sim.fdtd.getnamed(monitor_type, prop)
+                prop_val = sim.fdtd.getnamed(monitor_name, prop)
                 sim.fdtd.setnamed(exp_mon_name, prop, prop_val)
 
             # Select the desired mode
             if is_int(mode_num):
-                sim.fdtd.setnamed(exp_mon_name, 'mdoe selection', 'user select')
+                sim.fdtd.setnamed(exp_mon_name, 'mode selection', 'user select')
                 sim.fdtd.updatemodes(mode_num)
             else:
                 sim.fdtd.setnamed(exp_mon_name, 'mode selection', mode_num)
@@ -192,7 +192,7 @@ class ModeMatch:
         """
         props = ['x', 'y', 'z']
         normal = ''
-        if monitor_type == '2D X-noraml':
+        if monitor_type == '2D X-normal':
             props.extend(['y span', 'z span'])
             normal = 'x'
         elif monitor_type == '2D Y-normal':
@@ -228,19 +228,19 @@ class ModeMatch:
         geo_props, normal = ModeMatch.cross_section_monitor_props(monitor_type)
 
         sim.fdtd.setnamed(mode_src_name, 'injection axis', normal.lower() + '-axis')
-        if sim.fdtd.getnamednumber('varFDTD' == 1):
+        if sim.fdtd.getnamednumber('varFDTD') == 1:
             geo_props.remove('z')
         for prop in geo_props:
             prop_val = sim.fdtd.getnamed(monitor_name, prop)
-            sim.fdtd.setnamed(monitor_name, prop, prop_val)
+            sim.fdtd.setnamed(mode_src_name, prop, prop_val)
         sim.fdtd.setnamed(mode_src_name, 'override global source settings', False)
         sim.fdtd.setnamed(mode_src_name, 'direction', direction)
         if is_int(mode_num):
-            sim.fdtd.setnamed(mode_src_name, 'mode select', 'user select')
+            sim.fdtd.setnamed(mode_src_name, 'mode selection', 'user select')
             sim.fdtd.select(mode_src_name)
             sim.fdtd.updatesourcemode(int(mode_num))
         else:
-            sim.fdtd.setnamed(mode_src_name, 'mode select', mode_num)
+            sim.fdtd.setnamed(mode_src_name, 'mode selection', mode_num)
             sim.fdtd.select(mode_src_name)
             sim.fdtd.updatesourcemode()
 
@@ -253,7 +253,7 @@ class ModeMatch:
             The defined transmission direction (and thus the calculated one) of the monitor.
         """
         result_name = 'expansion for ' + exp_mon_name
-        if not sim.fdtd.haveresult(result_name):
+        if not sim.fdtd.haveresult(exp_mon_name, result_name):
             raise UserWarning('Cannot find mode expansion result')
         dataset = sim.fdtd.getresult(exp_mon_name, result_name)
         fwd_trans_coeff = dataset['a'] * np.sqrt(dataset['N'].real)
@@ -304,10 +304,10 @@ class ModeMatch:
             wavelength_range = wavelength.max() - wavelength.min()
             assert wavelength_range > 0, 'wavelength range should be positive'
             T_fwd_integrand = np.power(np.abs(target_T_fwd_vs_wl), norm_p) / wavelength_range # used to normalize
-            const_term = np.power(np.trapz(y = T_fwd_integrand, x = wavelength), 1 / norm_p)
+            const_term = np.power(np.trapz(y = T_fwd_integrand, x = wavelength), 1.0 / norm_p)
             T_fwd_error = np.abs(target_T_fwd_vs_wl - T_fwd_vs_wl.flatten())
             T_fwd_error_integrand = np.power(T_fwd_error, norm_p) / wavelength_range
-            error_term = np.power(np.trapz(y = T_fwd_error_integrand, x = wavelength), 1 / norm_p)
+            error_term = np.power(np.trapz(y = T_fwd_error_integrand, x = wavelength), 1.0 / norm_p)
             fom = const_term - error_term
         else:
             fom = np.abs(target_T_fwd_vs_wl) - np.abs(T_fwd_vs_wl.flatten() - target_T_fwd_vs_wl)

@@ -104,8 +104,9 @@ class Geometry():
             self.add_geo(sim, d_params, only_update = True)
             Geometry.get_eps_from_index_monitor(sim.fdtd, 'current_eps_data')
             sim.fdtd.eval("d_epses{" + str(i+1) + "} = (current_eps_data - original_eps_data) / dx;")
-        sys.stdout.write('.'); sys.stdout.flush() # Problem: ',' or ';', personal: used to record the process
+            sys.stdout.write('.'); sys.stdout.flush() # Problem: ',' or ';', personal: used to record the process
         sim.fdtd.eval("clear(original_eps_data, current_eps_data, dx);")
+        print('') # used to make a newline
         sim.fdtd.redrawon()
         self.add_geo(sim, current_params, only_update = True) # recover the original geometry
 

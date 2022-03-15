@@ -29,7 +29,7 @@ class BaseScript():
 
     def __call__(self, cad_handle):
         """Check the handle and evaluate the base_script in the handle"""
-        return self.eval(self, cad_handle)
+        return self.eval(cad_handle)
 
     def eval(self, cad_handle):
         """
@@ -37,7 +37,7 @@ class BaseScript():
         ---INPUTS---
         CAD_HANDLE: Handle of FDTD or MODE
         """
-        if not isinstance(cad_handle, FDTD) or not isinstance(cad_handle, MODE):
+        if not isinstance(cad_handle, FDTD) and not isinstance(cad_handle, MODE):
             raise UserWarning('input must be handle of FDTD or MODE')
         
         if hasattr(self, 'project'):

@@ -45,7 +45,7 @@ class Plotter():
         self.plot_hist = plot_hist
 
         if plot_hist:
-            self.fig, self.axs = plt.subplots(nrows = 3, ncols = 3, figsize = (12, 7)) 
+            self.fig, self.axs = plt.subplots(nrows = 2, ncols = 3, figsize = (12, 7)) 
         else:
             self.fig, self.axs = plt.subplots(nrows = 2, ncols = 2, figsize = (12, 10))
         self.fig.show()
@@ -69,12 +69,13 @@ class Plotter():
                     if not opt.geometry.plot(self.axs[1, 0]):
                         opt.gradient_fields.plot_eps(self.axs[1, 0])
                     opt.gradient_fields.plot(self.fig, self.axs[1, 1], self.axs[0, 1])
-                    print('Plots updated with optimization {} iteration {} result'.format(i, optimization.optimizer.iter - 1))
+                print('Plots updated with optimization {} iteration {} result'.format(i, optimization.optimizer.iter - 1))
         else:
-            if not optimization.geometry.plot(self.axs[1, 0]):
-                optimization.gradient_fields.plot_eps(self.axs[1, 0])
+            if hasattr(optimization, 'gradient_fields'):
+                if not optimization.geometry.plot(self.axs[1, 0]):
+                    optimization.gradient_fields.plot_eps(self.axs[1, 0])
                 optimization.gradient_fields.plot(self.fig, self.axs[1, 1], self.axs[0, 1])
-                print('Plots updated with iteration {} result'.format(optimization.optimizer.iter - 1))
+            print('Plots updated with iteration {} result'.format(optimization.optimizer.iter - 1))
 
         plt.tight_layout()
         self.fig.canvas.draw()

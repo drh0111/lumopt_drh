@@ -26,7 +26,7 @@ class Optimizer:
 
     def initialize(self, start_params, callable_fom, callable_jac, bounds, plotting_fun):
         """
-        __init__ function is used to make an original initialization, this function is used to make a more comprehensive initialization that use some variables form other objects collected by the Optimization object.
+        __init__ function is used to make an original initialization, this function is used to make a more comprehensive initialization that use some variables form other objects collected by the Optimization object. Be aware that it will scale the parameters and bounds here.
 
         ---INPUTS---
         START_PARAMS: Row vector (numpy array), without scaling
@@ -37,7 +37,7 @@ class Optimizer:
         assert bounds.shape[0] == start_params.size and bounds.shape[1] == 2
         assert self.scaling_factor.size == 1 or self.scaling_factor.size == start_params.size
         self.callable_fom, self.callable_jac = self.define_callables(callable_fom, callable_jac)
-        self.bounds = bounds * self.scaling_factor.reshape((start_params.size, 1))
+        self.bounds = bounds * self.scaling_factor.reshape((self.scaling_factor.size, 1))
         self.callback = self.define_callback(plotting_fun)
         self.reset_start_point(start_params)
 
@@ -113,17 +113,17 @@ class Optimizer:
         fom_ax.set_ylabel('FOM')
 
         if params_ax is not None:
-            params_hist = np.transpose(np.abs(self.params_hist)) # different from the standard one, transpose here for the implementation of several curve by one command
+            # params_hist = np.transpose(np.abs(self.params_hist)) # different from the standard one, transpose here for the implementation of several curve by one command
             params_ax.clear()
-            params_ax.semilogy(range(self.iter), params_hist)
+            params_ax.semilogy(range(self.iter), np.abs(self.params_hist))
             params_ax.set_xlabel('Iteration')
             params_ax.set_ylabel('Parameters')
             params_ax.set_title('Parameter evolution')
 
         if gradients_ax is not None:
-            grad_hist = np.transpose(np.abs(self.gradients_hist))
+            # grad_hist = np.transpose(np.abs(self.gradients_hist))
             gradients_ax.clear()
-            gradients_ax.semilogy(range(self.iter), grad_hist)
+            gradients_ax.semilogy(range(self.iter), np.abs(self.gradients_hist))
             gradients_ax.set_xlabel('Iteration')
             gradients_ax.set_ylabel('Gradient Magnitude')
             gradients_ax.set_title('Gradient evolution')

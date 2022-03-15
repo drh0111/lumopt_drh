@@ -42,10 +42,11 @@ def wrapped_GridInterpolator(points, values, method = 'linear', bounds_error = T
             """
             deal with those redundant dimensions and return the interpolated values of the given points
             ---INPUT---
-            POINTS: 2D array with shape (n, m) or array of tuples.
-                m is the dimension of each point.
+            POINTS: 
+                1) 2D array with shape (n, m) or array of tuples. m is the dimension of each point, this stands for the try case
+                2) tuple of array or list representing the coordinates of x, y, z... for the desired points, this stands for the except case
             """
-            # Considering the difference between one point and many points
+            # Considering the difference ponits = [(x0, y0, z0...), ...] and points = [[x0, x1..., xm], [y0, y1..., ym], ...]
             try:
                 newpoints = []
 
@@ -67,6 +68,6 @@ def wrapped_GridInterpolator(points, values, method = 'linear', bounds_error = T
                             newpoint.append(coord[0])   # Problem: different from standard one
                         else:
                             newpoint.append(coord)
-                return interpolator(np.array(newpoint))
+                return interpolator(tuple(newpoint))
 
         return wrapped_interpolator
