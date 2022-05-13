@@ -1,5 +1,4 @@
 import copy
-from tkinter.messagebox import NO
 import numpy as np
 
 class Optimizer:
