@@ -21,7 +21,7 @@ class Optimizer:
         self.params_hist = []
         self.gradients_hist =[]
         self.iter = 0
-        self.fom_scaling_factor = 1
+        self.fom_scaling_factor = 1e12
 
     def initialize(self, start_params, callable_fom, callable_jac, bounds, plotting_fun):
         """

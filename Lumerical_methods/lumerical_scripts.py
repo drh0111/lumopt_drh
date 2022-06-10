@@ -88,3 +88,10 @@ def get_fields_on_cad(fdtd, monitor_name, field_result_name, get_eps, get_D, get
             fdtd.eval('{0}.delta.z = getresult("{1}", "delta_z", options);'.format(field_result_name, monitor_name))
         else:
             fdtd.eval('{}.delta.z = 0.0;'.format(field_result_name))
+
+def set_spatial_interp(fdtd, monitor_name, method):
+    """
+    This function is used to set the desired monitor's interpolation method
+    """
+    script = 'select("{}"); set("spatial interpolation", "{}")'.format(monitor_name, method)
+    fdtd.eval(script)

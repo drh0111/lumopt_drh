@@ -40,6 +40,13 @@ class GradientFields():
         """
         result = sum(2.0 * sp.constants.epsilon_0 * self.forward_fields.getfield(x, y, z, wl) * self.adjoint_fields.getfield(x, y, z, wl))
         return np.real(result) if real else result
+    
+    def get_field_product_E_forward_adjoint(self):
+        """
+        This function simply calculates element wise product of 'forward_fields.E' and 'adjoint_fields.E'
+        """
+
+        return self.forward_fields.E * self.adjoint_fields.E
 
     def plot(self, fig, ax_forward, ax_gradients, original_grid = True):
         ax_forward.clear()

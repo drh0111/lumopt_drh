@@ -2,11 +2,11 @@ Ansys Lumerical 2020 R2 FDTD Solver Version 8.24.2387 (Windows 64bit)
  expires (month/day/year): 12/31/2035
 using config file: Ansys Licensing set with ANSYSLMD_LICENSE_FILE
 license host: 
-current time: Mon Mar 14 09:06:40 2022
+current time: Tue Jun  7 20:36:03 2022
 Running on host: RUHUAN
-host available memory (GB): 7.621259
+host available memory (GB): 2.683683
 All processes are communicating and ready to proceed to simulation...
-Running fsp file: D:\Lumerical\v202\bin\fdtd-engine-msmpi.exe -t 1 -remote D:/program/adjoint_method/Lumopt/Test_grad/opt_3/adjoint_0.fsp
+Running fsp file: D:\Lumerical\bin\fdtd-engine-msmpi.exe -t 1 -remote D:/program/adjoint_method/Lumopt/Test_grad/opt_0/adjoint_0.fsp
 Starting meshing
 Simulation size in gridpoints: 1 x 71 x 1
 Refined 0 mesh cells (0%)
@@ -29,13 +29,13 @@ Starting meshing
 Simulation size in gridpoints: 21 x 42 x 1
 Refined 0 mesh cells (0%)
 Completed meshing!
-Meshing complete in 0.015625 seconds of CPU time
+Meshing complete in 0 seconds of CPU time
 0 0
 Starting meshing
 Simulation size in gridpoints: 21 x 42 x 1
 Refined 0 mesh cells (0%)
 Completed meshing!
-Meshing complete in 0 seconds of CPU time
+Meshing complete in 0.015625 seconds of CPU time
 0 0
 finished material properties
 Selected kernel with optimization level: 2 and split-field propagation direction: 0
@@ -43,7 +43,7 @@ Starting meshing
 Simulation size in gridpoints: 21 x 42 x 1
 Refined 0 mesh cells (0%)
 Completed meshing!
-Meshing complete in 0.015625 seconds of CPU time
+Meshing complete in 0 seconds of CPU time
 0 0
 Selected kernel with optimization level: 2 and split-field propagation direction: 0
 -----------------------------------------
@@ -66,26 +66,25 @@ Finished initialization of 2D Simulation
 -----------------------------------------
 All processes are communicating and ready to proceed to simulation...
 Starting 21498 total iterations
-0.223272% complete. Max time remaining: 10 secs. Auto Shutoff: 1
-2.30714% complete. Max time remaining: 2 secs. Auto Shutoff: 1
-4.6887% complete. Max time remaining: 2 secs. Auto Shutoff: 1
-9.45183% complete. Max time remaining: 2 secs. Auto Shutoff: 0.000212619
-10.9822% complete. Max time remaining: 2 secs. Auto Shutoff: 3.68143e-06
-100% complete. Max time remaining: 0 mins, 0 secs. Auto Shutoff: 3.68143e-06
+0.223272% complete. Max time remaining: 2 secs. Auto Shutoff: 1
+2.30714% complete. Max time remaining: 1 secs. Auto Shutoff: 1
+4.6887% complete. Max time remaining: 1 secs. Auto Shutoff: 1
+8.63317% complete. Max time remaining: 1 secs. Auto Shutoff: 8.34557e-06
+100% complete. Max time remaining: 0 mins, 0 secs. Auto Shutoff: 8.34557e-06
 Early termination of simulation, the autoshutoff criteria are satisfied.
-Completed 2361 iterations, or 1.098217e-13s of Simulation Time
+Completed 1856 iterations, or 8.633170e-14s of Simulation Time
 Process 0 starting to collect data
     collecting TM monitor data
     collecting TE monitor data
     collecting TM source data
     collecting TE source data
 Finished collecting data
-Simulation completed successfully at: Mon Mar 14 09:06:40 2022
-Overall wall time measurements in seconds: 3.12737
-    time to mesh and initialize: 0.11841
-    time to run FDTD simulation: 0.192076
-    time to checkpoint simulation: 6e-07
-    time to finalize data and save to files: 0.0425701
-    miscellaneous time: 2.7743
-    FDTD solver speed on process 0: 10.8416 Mnodes/s
-    total FDTD solver speed on 16 processes: 173.465 Mnodes/s
+Simulation completed successfully at: Tue Jun  7 20:36:03 2022
+Overall wall time measurements in seconds: 3.11471
+    time to mesh and initialize: 0.115817
+    time to run FDTD simulation: 0.107835
+    time to checkpoint simulation: 2e-07
+    time to finalize data and save to files: 0.0389277
+    miscellaneous time: 2.85212
+    FDTD solver speed on process 0: 15.1806 Mnodes/s
+    total FDTD solver speed on 16 processes: 242.889 Mnodes/s

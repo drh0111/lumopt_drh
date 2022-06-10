@@ -137,7 +137,8 @@ class ModeMatch:
         adjoint_source_power = ModeMatch.get_source_power(sim, self.wavelength)
 
         assert hasattr(self, 'phase_prefactors'), 'Don not have phase_prefactors attribute'
-        scaling_factor = np.conj(self.phase_prefactors) * omega * 1j / np.sqrt(adjoint_source_power)
+        # scaling_factor = np.conj(self.phase_prefactors) * omega * 1j / np.sqrt(adjoint_source_power)
+        scaling_factor = np.conj(self.phase_prefactors) / np.sqrt(adjoint_source_power)
         return scaling_factor
 
     @staticmethod
@@ -364,7 +365,7 @@ class ModeMatch:
             T_fwd_error_integrand = np.power(np.abs(T_fwd_error), norm_p) / wavelength_range
             constant_factor = -1.0 * np.power(np.trapz(y = T_fwd_error_integrand, x = wl), 1/norm_p - 1) # it is the multiplier constant factor
             integral_kernel = np.power(np.abs(T_fwd_error), norm_p - 1) * np.sign(T_fwd_error) / wavelength_range
-            # Problem: Thy it will be faster? (see standard code)
+            # Problem: Why it will be faster? (see standard code)
             d = np.diff(wl)
             quad_weight = np.append(np.append(d[0], d[ : -1] + d[1 : ]), d[-1]) / 2
             v = constant_factor * integral_kernel * quad_weight
