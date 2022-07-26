@@ -1,0 +1,88 @@
+Ansys Lumerical 2020 R2 FDTD Solver Version 8.24.2387 (Windows 64bit)
+ expires (month/day/year): 12/31/2035
+using config file: Ansys Licensing set with ANSYSLMD_LICENSE_FILE
+license host: 
+current time: Mon Jul 25 10:51:48 2022
+Running on host: RUHUAN
+host available memory (GB): 5.376938
+All processes are communicating and ready to proceed to simulation...
+Running fsp file: D:\Lumerical\bin\fdtd-engine-msmpi.exe -t 1 -remote D:/program/adjoint_method/Lumopt/Example/Polarization_control/opt_20/adjoint_0.fsp
+number of processors is 16
+processors are distributed as: 2x2x4
+Running 3D Simulation
+Starting meshing
+Simulation size in gridpoints: 20 x 23 x 20
+Refined 0 mesh cells (0%)
+Completed meshing!
+Meshing complete in 0 seconds of CPU time
+0 0
+Starting meshing
+Simulation size in gridpoints: 20 x 23 x 20
+Refined 0 mesh cells (0%)
+Completed meshing!
+Meshing complete in 0 seconds of CPU time
+0 0
+Starting meshing
+Simulation size in gridpoints: 20 x 23 x 20
+Refined 0 mesh cells (0%)
+Completed meshing!
+Meshing complete in 0 seconds of CPU time
+0 0
+finished material properties
+Meshing Time: 0.003015 seconds, Init Electrical Material Time: 0.0022671 seconds, Init Magnetic Material Time: 3.93e-05
+Using selected optimization level: 2
+Selecting 3d kernel for splitFieldDirection=0 and optLevel=2
+-----------------------------------------
+Beginning initialization of 3D Simulation
+Starting to add sources to simulation
+Adding 3D Gaussian source propagating in Z
+Adding 3D Gaussian source propagating in Z
+Starting to add boundary conditions to simulation
+Adding 3D Parallel bloch BC
+Adding 3D Parallel BC
+Adding 3D Parallel bloch BC
+Adding 3D Parallel BC
+Adding 3D PML BC
+Adding 3D Parallel BC
+Starting to add monitors to Simulation
+Adding analysis monitor
+Adding 3D DFT monitor
+Adding 3D DFT monitor
+Adding 3D index monitor
+Finished initialization of 3D Simulation
+-----------------------------------------
+All processes are communicating and ready to proceed to simulation...
+Starting 15725 total iterations
+0.305253% complete. Max time remaining: 25 secs. Auto Shutoff: 1
+1.52627% complete. Max time remaining: 26 secs. Auto Shutoff: 1
+3.15428% complete. Max time remaining: 25 secs. Auto Shutoff: 1
+6.41031% complete. Max time remaining: 25 secs. Auto Shutoff: 0.423088
+12.9224% complete. Max time remaining: 22 secs. Auto Shutoff: 0.105478
+19.4344% complete. Max time remaining: 20 secs. Auto Shutoff: 0.0489122
+25.9465% complete. Max time remaining: 19 secs. Auto Shutoff: 0.0278074
+32.4586% complete. Max time remaining: 17 secs. Auto Shutoff: 0.0181324
+38.9706% complete. Max time remaining: 16 secs. Auto Shutoff: 0.0132494
+45.4827% complete. Max time remaining: 14 secs. Auto Shutoff: 0.0106043
+51.9948% complete. Max time remaining: 12 secs. Auto Shutoff: 0.00897758
+58.5068% complete. Max time remaining: 11 secs. Auto Shutoff: 0.00781053
+65.0189% complete. Max time remaining: 9 secs. Auto Shutoff: 0.00682468
+71.531% complete. Max time remaining: 7 secs. Auto Shutoff: 0.00596285
+78.043% complete. Max time remaining: 6 secs. Auto Shutoff: 0.00521894
+84.5551% complete. Max time remaining: 4 secs. Auto Shutoff: 0.00460368
+91.0672% complete. Max time remaining: 2 secs. Auto Shutoff: 0.00411647
+97.5792% complete. Max time remaining: 1 secs. Auto Shutoff: 0.00372257
+100% complete. Max time remaining: 0 secs. Auto Shutoff: 0.00355807
+Completed 15725 iterations, or 1.000022e-12s of Simulation Time
+Process 0 starting to collect data
+    collecting monitor data
+    collecting source data
+Finished collecting data
+Simulation completed successfully at: Mon Jul 25 10:52:14 2022
+Overall wall time measurements in seconds: 28.536
+    time to mesh and initialize: 0.129467
+    time to run FDTD simulation: 25.6299
+    time to checkpoint simulation: 3e-07
+    time to finalize data and save to files: 0.0281322
+    miscellaneous time: 2.74844
+    FDTD solver speed on process 0: 5.64458 Mnodes/s
+    total FDTD solver speed on 16 processes: 90.3133 Mnodes/s

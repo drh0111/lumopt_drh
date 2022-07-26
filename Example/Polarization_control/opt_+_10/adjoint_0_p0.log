@@ -1,0 +1,102 @@
+Ansys Lumerical 2020 R2 FDTD Solver Version 8.24.2387 (Windows 64bit)
+ expires (month/day/year): 12/31/2035
+using config file: Ansys Licensing set with ANSYSLMD_LICENSE_FILE
+license host: 
+current time: Tue Jul 12 16:30:23 2022
+Running on host: RUHUAN
+host available memory (GB): 7.148245
+All processes are communicating and ready to proceed to simulation...
+Running fsp file: D:\Lumerical\bin\fdtd-engine-msmpi.exe -t 1 -remote D:/program/adjoint_method/Lumopt/Example/Polarization_control/opt_10/adjoint_0.fsp
+number of processors is 16
+processors are distributed as: 2x2x4
+Running 3D Simulation
+Split-field FDTD is activated with propagation along axis 3, center frequency is 3, n=1
+Starting meshing
+Simulation size in gridpoints: 12 x 12 x 16
+Refined 0 mesh cells (0%)
+Completed meshing!
+Meshing complete in 0 seconds of CPU time
+0 0
+Starting meshing
+Simulation size in gridpoints: 12 x 12 x 16
+Refined 0 mesh cells (0%)
+Completed meshing!
+Meshing complete in 0 seconds of CPU time
+0 0
+Starting meshing
+Simulation size in gridpoints: 12 x 12 x 16
+Refined 0 mesh cells (0%)
+Completed meshing!
+Meshing complete in 0 seconds of CPU time
+0 0
+finished material properties
+Meshing Time: 0.0010213 seconds, Init Electrical Material Time: 0.0002144 seconds, Init Magnetic Material Time: 6.4e-06
+Using selected optimization level: 2
+Selecting 3d kernel for splitFieldDirection=3 and optLevel=2
+-----------------------------------------
+Beginning initialization of 3D Simulation
+Starting to add sources to simulation
+Adding 3D Gaussian source propagating in Z
+Reverted to narrowband source injection
+Using BFAST in the 3d sources! Injection direction: 1, index: 1
+Adding 3D Gaussian source propagating in Z
+Reverted to narrowband source injection
+Using BFAST in the 3d sources! Injection direction: 1, index: 1
+Starting to add boundary conditions to simulation
+Adding 3D Parallel BC
+Adding 3D Parallel BC
+Adding 3D Parallel BC
+Adding 3D Parallel BC
+Adding 3D PML BC
+Adding 3D Parallel BC
+Starting to add monitors to Simulation
+Adding analysis monitor
+Adding 3D DFT monitor
+Adding 3D DFT monitor
+Adding 3D index monitor
+Finished initialization of 3D Simulation
+-----------------------------------------
+All processes are communicating and ready to proceed to simulation...
+Starting 79605 total iterations
+0.0602977% complete. Max time remaining: 38 secs. Auto Shutoff: 1
+1.26625% complete. Max time remaining: 37 secs. Auto Shutoff: 1
+2.5526% complete. Max time remaining: 54 secs. Auto Shutoff: 0.101064
+5.1253% complete. Max time remaining: 4 mins, 2 secs. Auto Shutoff: 0.0132712
+6.41165% complete. Max time remaining: 9 mins, 27 secs. Auto Shutoff: 0.009407
+7.53721% complete. Max time remaining: 12 mins, 26 secs. Auto Shutoff: 0.00699819
+8.58237% complete. Max time remaining: 14 mins, 24 secs. Auto Shutoff: 0.00523829
+9.62753% complete. Max time remaining: 15 mins, 45 secs. Auto Shutoff: 0.00403224
+10.6727% complete. Max time remaining: 16 mins, 55 secs. Auto Shutoff: 0.00310565
+11.6777% complete. Max time remaining: 17 mins, 56 secs. Auto Shutoff: 0.00240214
+12.763% complete. Max time remaining: 18 mins, 33 secs. Auto Shutoff: 0.00178953
+13.768% complete. Max time remaining: 19 mins, 7 secs. Auto Shutoff: 0.00142422
+14.8131% complete. Max time remaining: 19 mins, 24 secs. Auto Shutoff: 0.00106706
+16.2603% complete. Max time remaining: 17 mins, 54 secs. Auto Shutoff: 0.000744881
+17.5466% complete. Max time remaining: 16 mins, 25 secs. Auto Shutoff: 0.000538431
+18.833% complete. Max time remaining: 15 mins, 7 secs. Auto Shutoff: 0.000389735
+21.4057% complete. Max time remaining: 12 mins, 57 secs. Auto Shutoff: 0.000196936
+23.9784% complete. Max time remaining: 11 mins, 14 secs. Auto Shutoff: 0.000102657
+26.5511% complete. Max time remaining: 9 mins, 51 secs. Auto Shutoff: 5.36551e-05
+29.1238% complete. Max time remaining: 8 mins, 43 secs. Auto Shutoff: 2.72121e-05
+31.6965% complete. Max time remaining: 7 mins, 46 secs. Auto Shutoff: 1.41824e-05
+33.057% complete. Max time remaining: 7 mins, 19 secs. Auto Shutoff: 9.9395e-06
+100% complete. Max time remaining: 0 mins, 0 secs. Auto Shutoff: 9.9395e-06
+Early termination of simulation, the autoshutoff criteria are satisfied.
+Completed 26315 iterations, or 3.305695e-13s of Simulation Time
+Process 0 starting to collect data
+    collecting monitor data
+    collecting source data
+Reverted to narrowband source injection
+Using BFAST in the 3d sources! Injection direction: 1, index: 1
+Reverted to narrowband source injection
+Using BFAST in the 3d sources! Injection direction: 1, index: 1
+Finished collecting data
+Simulation completed successfully at: Tue Jul 12 16:34:00 2022
+Overall wall time measurements in seconds: 219.547
+    time to mesh and initialize: 0.0783369
+    time to run FDTD simulation: 216.911
+    time to checkpoint simulation: 5e-07
+    time to finalize data and save to files: 0.0323309
+    miscellaneous time: 2.5254
+    FDTD solver speed on process 0: 0.279515 Mnodes/s
+    total FDTD solver speed on 16 processes: 4.47224 Mnodes/s
